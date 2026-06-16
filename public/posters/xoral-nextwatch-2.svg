@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600" viewBox="0 0 400 600">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1f2a"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" fill="url(#bg)"/>
+  <rect x="40" y="70" width="320" height="220" rx="18" fill="#06b6d4" opacity="0.25"/>
+  <rect x="70" y="110" width="260" height="140" rx="12" fill="#22d3ee" opacity="0.2"/>
+  <text x="36" y="480" fill="#f1f5f9" font-family="Arial, sans-serif" font-size="26" font-weight="700">XORAL FEATURE</text>
+  <text x="36" y="520" fill="#94a3b8" font-family="Arial, sans-serif" font-size="18">Mystery Thriller</text>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="av-NnenaKasim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0891b2"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#av-NnenaKasim)"/>
+  <circle cx="200" cy="160" r="72" fill="#ffffff" opacity="0.12"/>
+  <text x="200" y="200" text-anchor="middle" fill="#f8fafc" font-family="Arial,sans-serif" font-size="72" font-weight="800">NK</text>
+  <text x="200" y="340" text-anchor="middle" fill="#cbd5e1" font-family="Arial,sans-serif" font-size="18" font-weight="600">Nnena Kasim</text>
+</svg>
