@@ -5,6 +5,8 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
   avatar_url text,
+  bio text,
+  banner_url text,
   plan text not null default 'Free',
   created_at timestamptz not null default now()
 );
@@ -98,12 +100,38 @@ create policy "Users manage own follows"
 create table if not exists public.community_posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-  content text not null,
+  content text,
   likes integer not null default 0,
   comments integer not null default 0,
   image_url text,
+  video_url text,
+  media_type text not null default 'text' check (media_type in ('text', 'image', 'video')),
+  post_kind text not null default 'post' check (post_kind in ('post', 'short')),
+  music_url text,
+  video_trim_start real default 0,
+  video_trim_end real,
   created_at timestamptz not null default now()
 );
+
+-- User subscriptions (subscriber → creator)
+create table if not exists public.user_follows (
+  follower_id uuid not null references auth.users(id) on delete cascade,
+  following_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (follower_id, following_id),
+  check (follower_id <> following_id)
+);
+
+alter table public.user_follows enable row level security;
+
+create policy "Anyone can read user follows"
+  on public.user_follows for select
+  using (true);
+
+create policy "Users manage own follows"
+  on public.user_follows for all
+  using (auth.uid() = follower_id)
+  with check (auth.uid() = follower_id);
 
 alter table public.community_posts enable row level security;
 

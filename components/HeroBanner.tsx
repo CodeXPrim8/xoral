@@ -7,7 +7,8 @@ import { titlePath, watchPath } from '@/lib/cms/paths';
 import { SafeImage } from './SafeImage';
 import { getPlaybackPosition, getResumeSeconds, savePlaybackPosition } from '@/lib/playback-progress';
 
-const IMAGE_PHASE_MS = 2000;
+const IMAGE_PHASE_MS_DESKTOP = 2000;
+const IMAGE_PHASE_MS_MOBILE = 700;
 
 export interface HeroBannerProps {
   slug: string;
@@ -41,20 +42,40 @@ export function HeroBanner({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [hasSavedProgress, setHasSavedProgress] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [autoPreview, setAutoPreview] = useState(true);
+
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 768px)').matches;
+    setIsMobile(mobile);
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+    setAutoPreview(!mobile && !conn?.saveData);
+  }, []);
 
   useEffect(() => {
     setHasSavedProgress(getPlaybackPosition(slug) > 1 || watchProgressPercent > 0);
   }, [slug, watchProgressPercent]);
 
   useEffect(() => {
-    if (!previewSrc) return;
-    const timer = window.setTimeout(() => setShowImage(false), IMAGE_PHASE_MS);
-    return () => window.clearTimeout(timer);
+    const video = videoRef.current;
+    if (!video || !previewSrc) return;
+    video.preload = 'auto';
+    if (!video.src.endsWith(previewSrc)) {
+      video.src = previewSrc;
+      video.load();
+    }
   }, [previewSrc]);
 
   useEffect(() => {
+    if (!previewSrc || !autoPreview) return;
+    const delay = isMobile ? IMAGE_PHASE_MS_MOBILE : IMAGE_PHASE_MS_DESKTOP;
+    const timer = window.setTimeout(() => setShowImage(false), delay);
+    return () => window.clearTimeout(timer);
+  }, [previewSrc, isMobile, autoPreview]);
+
+  useEffect(() => {
     const video = videoRef.current;
-    if (!video || !previewSrc || showImage || isPlaying) return;
+    if (!video || !previewSrc || showImage || isPlaying || !autoPreview) return;
 
     video.muted = true;
     video.loop = true;
@@ -63,7 +84,7 @@ export function HeroBanner({
       video.src = previewSrc;
     }
     void video.play().catch(() => {});
-  }, [previewSrc, showImage, isPlaying]);
+  }, [previewSrc, showImage, isPlaying, autoPreview]);
 
   const persistProgress = useCallback(() => {
     const video = videoRef.current;
@@ -153,7 +174,9 @@ export function HeroBanner({
               <video
                 ref={videoRef}
                 playsInline
+                preload="auto"
                 poster={image}
+                muted
                 className={`w-full h-full object-cover smooth-transition ${
                   showImage && !isPlaying ? 'opacity-0' : 'opacity-100'
                 }`}
@@ -163,6 +186,8 @@ export function HeroBanner({
                   src={image}
                   alt={title}
                   fallbackSrc="/posters/xoral-hero.svg"
+                  loading="eager"
+                  fetchPriority="high"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               )}

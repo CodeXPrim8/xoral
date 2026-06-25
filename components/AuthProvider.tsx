@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { createClientIfConfigured } from '@/lib/supabase/client';
+import { migrateLocalStorageToSupabase } from '@/lib/user-data';
 
 type AuthContextValue = {
   user: User | null;
@@ -28,18 +29,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     let active = true;
 
-    void supabase.auth.stopAutoRefresh();
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active) return;
+      const nextUser = session?.user ?? null;
+      userIdRef.current = nextUser?.id ?? null;
+      setUser(nextUser);
+      setLoading(false);
+      if (nextUser) void migrateLocalStorageToSupabase();
+    });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
 
-      const nextUserId = session?.user?.id ?? null;
+      // Token refresh updates cookies only — no need to re-render the whole app.
+      if (event === 'TOKEN_REFRESHED') return;
 
-      if (event === 'TOKEN_REFRESHED') {
-        return;
-      }
+      const nextUser = session?.user ?? null;
+      const nextUserId = nextUser?.id ?? null;
 
       if (event === 'SIGNED_OUT') {
         userIdRef.current = null;
@@ -48,24 +56,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      if (session?.user) {
-        if (nextUserId !== userIdRef.current) {
-          userIdRef.current = nextUserId;
-          setUser(session.user);
-        }
-        setLoading(false);
-        return;
+      if (nextUserId !== userIdRef.current) {
+        userIdRef.current = nextUserId;
+        setUser(nextUser);
+        if (nextUser) void migrateLocalStorageToSupabase();
       }
 
-      if (event === 'INITIAL_SESSION') {
-        userIdRef.current = null;
-        setUser(null);
-        setLoading(false);
-      }
+      setLoading(false);
     });
+
+    function onVisible() {
+      if (document.visibilityState !== 'visible') return;
+      void supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!active) return;
+        const nextUser = session?.user ?? null;
+        const nextUserId = nextUser?.id ?? null;
+        if (nextUserId !== userIdRef.current) {
+          userIdRef.current = nextUserId;
+          setUser(nextUser);
+        }
+      });
+    }
+
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       active = false;
+      document.removeEventListener('visibilitychange', onVisible);
       subscription.unsubscribe();
     };
   }, []);

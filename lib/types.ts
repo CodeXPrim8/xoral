@@ -47,8 +47,12 @@ export type Creator = {
   specialization: string;
 };
 
+export type CommunityMediaType = 'text' | 'image' | 'video';
+export type CommunityPostKind = 'post' | 'short';
+
 export type CommunityPost = {
   id: string;
+  userId?: string;
   author: string;
   avatar: string;
   content: string;
@@ -56,6 +60,24 @@ export type CommunityPost = {
   likes: number;
   comments: number;
   image?: string;
+  videoUrl?: string;
+  mediaType: CommunityMediaType;
+  postKind: CommunityPostKind;
+  musicUrl?: string;
+  videoTrimStart?: number;
+  videoTrimEnd?: number;
+};
+
+export type PublicProfile = {
+  id: string;
+  displayName: string;
+  avatarUrl: string;
+  bio?: string;
+  bannerUrl?: string;
+  subscriberCount: number;
+  postCount: number;
+  shortCount: number;
+  memberSince?: string;
 };
 
 export type Notification = {

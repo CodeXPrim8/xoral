@@ -41,11 +41,10 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(path)
   );
 
+  // Validates JWT and refreshes the session cookie when needed.
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  const user = session?.user ?? null;
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();

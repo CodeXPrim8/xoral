@@ -41,11 +41,13 @@ export function Header() {
     (user?.user_metadata?.display_name as string | undefined)?.[0]?.toUpperCase() ??
     user?.email?.[0]?.toUpperCase();
 
-  const navLink = (href: string, label: string) => (
+  const navLink = (href: string, label: string, matchPrefix?: string) => (
     <Link
       href={href}
       className={`text-sm smooth-transition ${
-        pathname === href ? 'text-foreground font-semibold' : 'text-foreground/70 hover:text-foreground'
+        (matchPrefix ? pathname.startsWith(matchPrefix) : pathname === href)
+          ? 'text-foreground font-semibold'
+          : 'text-foreground/70 hover:text-foreground'
       }`}
     >
       {label}
@@ -66,7 +68,7 @@ export function Header() {
             {navLink('/search', 'Search')}
             {navLink('/ai-stars', 'AI Stars')}
             {navLink('/library', 'My List')}
-            {navLink('/community', 'Community')}
+            {navLink('/community/posts', 'Community', '/community')}
           </nav>
 
           <div className="flex items-center gap-4 ml-auto">

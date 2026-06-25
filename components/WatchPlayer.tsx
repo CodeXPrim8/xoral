@@ -154,9 +154,11 @@ export function WatchPlayer({ slug }: { slug: string }) {
             )}
             <video
               ref={videoRef}
+              key={videoUrl}
               src={videoUrl}
               controls
               playsInline
+              preload="metadata"
               poster={title.image}
               className="w-full h-full object-contain bg-black"
             />

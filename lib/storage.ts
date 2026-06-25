@@ -4,6 +4,8 @@ const KEYS = {
   watchlist: 'xoral_watchlist',
   watched: 'xoral_watched',
   follows: 'xoral_follows',
+  userFollows: 'xoral_user_follows',
+  subscriberCounts: 'xoral_subscriber_counts',
   community: 'xoral_community_posts',
   notifications: 'xoral_notifications',
 } as const;
@@ -89,19 +91,75 @@ export function isCharacterFollowed(id: string) {
   return getFollows().characters.includes(id);
 }
 
-export function getCommunityPosts(): CommunityPost[] {
-  return readJson<CommunityPost[]>(KEYS.community, []);
+export function getFollowedUserIds(): string[] {
+  return readJson<string[]>(KEYS.userFollows, []);
 }
 
-export function addCommunityPost(content: string) {
+export function toggleUserFollow(userId: string) {
+  const current = getFollowedUserIds();
+  const counts = readJson<Record<string, number>>(KEYS.subscriberCounts, {});
+  const next = current.includes(userId)
+    ? current.filter((id) => id !== userId)
+    : [...current, userId];
+
+  if (current.includes(userId)) {
+    counts[userId] = Math.max(0, (counts[userId] ?? 0) - 1);
+  } else {
+    counts[userId] = (counts[userId] ?? 0) + 1;
+  }
+
+  writeJson(KEYS.userFollows, next);
+  writeJson(KEYS.subscriberCounts, counts);
+  return next;
+}
+
+export function getSubscriberCount(userId: string) {
+  const counts = readJson<Record<string, number>>(KEYS.subscriberCounts, {});
+  return counts[userId] ?? 0;
+}
+
+export function isFollowingUser(userId: string) {
+  return getFollowedUserIds().includes(userId);
+}
+
+export function getCommunityPosts(): CommunityPost[] {
+  return readJson<CommunityPost[]>(KEYS.community, []).map((post) => ({
+    ...post,
+    postKind: post.postKind ?? 'post',
+    mediaType: post.mediaType ?? (post.videoUrl ? 'video' : post.image ? 'image' : 'text'),
+  }));
+}
+
+export function addCommunityPost(input: {
+  content?: string;
+  image?: string;
+  videoUrl?: string;
+  mediaType?: import('./types').CommunityMediaType;
+  postKind?: import('./types').CommunityPostKind;
+  musicUrl?: string;
+  videoTrimStart?: number;
+  videoTrimEnd?: number;
+}) {
+  const mediaType =
+    input.mediaType ??
+    (input.videoUrl ? 'video' : input.image ? 'image' : 'text');
+
   const post: CommunityPost = {
     id: `local-${Date.now()}`,
+    userId: 'local-user',
     author: 'You',
     avatar: '/placeholder-user.jpg',
-    content,
+    content: input.content ?? '',
     timestamp: 'Just now',
     likes: 0,
     comments: 0,
+    image: input.image,
+    videoUrl: input.videoUrl,
+    mediaType,
+    postKind: input.postKind ?? 'post',
+    musicUrl: input.musicUrl,
+    videoTrimStart: input.videoTrimStart,
+    videoTrimEnd: input.videoTrimEnd,
   };
   const next = [post, ...getCommunityPosts()];
   writeJson(KEYS.community, next);

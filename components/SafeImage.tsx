@@ -10,6 +10,8 @@ export function SafeImage({
   src,
   alt,
   fallbackSrc = '/placeholder.jpg',
+  loading = 'lazy',
+  decoding = 'async',
   ...props
 }: SafeImageProps) {
   const [currentSrc, setCurrentSrc] = useState(src || fallbackSrc);
@@ -19,6 +21,8 @@ export function SafeImage({
       {...props}
       src={currentSrc}
       alt={alt}
+      loading={loading}
+      decoding={decoding}
       onError={() => setCurrentSrc(fallbackSrc)}
     />
   );

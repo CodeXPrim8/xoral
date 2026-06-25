@@ -11,7 +11,7 @@ function getBrowserClient() {
       getSupabasePublicKey()!,
       {
         auth: {
-          autoRefreshToken: false,
+          autoRefreshToken: true,
           persistSession: true,
           detectSessionInUrl: true,
         },
