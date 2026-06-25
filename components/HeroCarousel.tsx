@@ -118,24 +118,6 @@ export function HeroCarousel({ heroes, getWatchProgress }: HeroCarouselProps) {
         />
       </div>
 
-      {deck.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 pointer-events-auto">
-          {deck.map((hero, dotIndex) => (
-            <button
-              key={`${hero.id ?? hero.slug}-${dotIndex}`}
-              type="button"
-              aria-label={`Show ${hero.title}`}
-              onClick={() => {
-                setIndex(dotIndex);
-                setPaused(false);
-              }}
-              className={`h-2 rounded-full smooth-transition ${
-                dotIndex === index ? 'w-8 bg-primary' : 'w-2 bg-foreground/40 hover:bg-foreground/70'
-              }`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
