@@ -46,7 +46,7 @@ export default function Page() {
           title="Trending Now"
           subtitle="What everyone is watching right now"
           items={catalog.trending}
-          viewAllHref="/movies"
+          viewAllHref="/browse"
         />
         <section className="space-y-6">
           <div>

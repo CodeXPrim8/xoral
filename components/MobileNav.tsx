@@ -2,24 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bookmark, Film, Search, Users } from 'lucide-react';
+import { Bookmark, LayoutGrid, Search, Users } from 'lucide-react';
 
 type NavItem = {
   href: string;
-  icon: typeof Film;
+  icon: typeof LayoutGrid;
   label: string | null;
   matchPrefix?: string;
 };
 
 const navItems: NavItem[] = [
-  { href: '/movies', icon: Film, label: 'Movies', matchPrefix: '/movies' },
+  { href: '/browse', icon: LayoutGrid, label: 'Browse', matchPrefix: '/browse' },
   { href: '/search', icon: Search, label: null },
   { href: '/library', icon: Bookmark, label: 'My List' },
   { href: '/community/posts', icon: Users, label: 'Community', matchPrefix: '/community' },
 ];
 
 function isActive(pathname: string, href: string, matchPrefix?: string) {
-  if (matchPrefix) return pathname === href || pathname.startsWith(matchPrefix);
+  if (matchPrefix) {
+    return pathname === href || pathname.startsWith(matchPrefix) || pathname === '/movies';
+  }
   return pathname === href;
 }
 

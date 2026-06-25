@@ -64,7 +64,7 @@ export function Header() {
 
           <nav className="hidden md:flex items-center gap-6 ml-8">
             {navLink('/', 'Home')}
-            {navLink('/movies', 'Movies')}
+            {navLink('/browse', 'Browse', '/browse')}
             {navLink('/search', 'Search')}
             {navLink('/ai-stars', 'AI Stars')}
             {navLink('/library', 'My List')}

@@ -44,16 +44,25 @@ export function searchTitles(query: string): Title[] {
   });
 }
 
+export type BrowseTypeFilter = 'all' | 'movie' | 'series';
+
 export function filterTitles(options: {
   query?: string;
   genre?: string;
   sort?: string;
+  type?: BrowseTypeFilter;
 }) {
   let results = [...allTitles];
 
   if (options.query) {
     const q = options.query.toLowerCase();
     results = results.filter((title) => title.title.toLowerCase().includes(q));
+  }
+
+  if (options.type === 'movie') {
+    results = results.filter((title) => title.type === 'movie' || title.type === 'ai');
+  } else if (options.type === 'series') {
+    results = results.filter((title) => title.type === 'series');
   }
 
   if (options.genre && options.genre !== 'All Genres') {
@@ -114,13 +123,19 @@ export function searchCatalogTitles(catalog: CatalogSnapshot, query: string): Ti
 
 export function filterCatalogTitles(
   catalog: CatalogSnapshot,
-  options: { query?: string; genre?: string; sort?: string }
+  options: { query?: string; genre?: string; sort?: string; type?: BrowseTypeFilter }
 ) {
   let results = [...catalog.titles];
 
   if (options.query) {
     const q = options.query.toLowerCase();
     results = results.filter((title) => title.title.toLowerCase().includes(q));
+  }
+
+  if (options.type === 'movie') {
+    results = results.filter((title) => title.type === 'movie' || title.type === 'ai');
+  } else if (options.type === 'series') {
+    results = results.filter((title) => title.type === 'series');
   }
 
   if (options.genre && options.genre !== 'All Genres') {
