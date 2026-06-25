@@ -2,7 +2,7 @@
 
 import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
-import { HeroBanner } from '@/components/HeroBanner';
+import { HeroCarousel } from '@/components/HeroCarousel';
 import { ContentCarousel } from '@/components/ContentCarousel';
 import { FeaturedGrid } from '@/components/FeaturedGrid';
 import { MeetTheCast } from '@/components/CharacterDetail';
@@ -16,6 +16,17 @@ import { toast } from 'sonner';
 export default function Page() {
   const catalog = useCatalog();
   const [followedCreators, setFollowedCreators] = useState<string[]>([]);
+  const [heroVisitKey, setHeroVisitKey] = useState(0);
+
+  useEffect(() => {
+    try {
+      const visits = Number(sessionStorage.getItem('xoral-home-visits') ?? '0') + 1;
+      sessionStorage.setItem('xoral-home-visits', String(visits));
+      setHeroVisitKey(visits);
+    } catch {
+      setHeroVisitKey((key) => key + 1);
+    }
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -32,10 +43,11 @@ export default function Page() {
       <Header />
 
       <div className="w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
-        <HeroBanner
-          {...catalog.hero}
-          watchProgressPercent={
-            catalog.nextWatch.find((item) => item.slug === catalog.hero.slug)?.progress ?? 0
+        <HeroCarousel
+          key={heroVisitKey}
+          heroes={catalog.heroes}
+          getWatchProgress={(slug) =>
+            catalog.nextWatch.find((item) => item.slug === slug)?.progress ?? 0
           }
         />
       </div>

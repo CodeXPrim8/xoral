@@ -47,12 +47,17 @@ export async function wireNewTitleToHome(
     });
   }
 
-  const { data: hero } = await supabase.from('cms_hero').select('title_slug').eq('id', 1).maybeSingle();
+  const { count: heroCount } = await supabase
+    .from('cms_hero')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_active', true);
 
-  if (!hero?.title_slug) {
-    await supabase.from('cms_hero').upsert({
-      id: 1,
+  if (!heroCount) {
+    const sort_order = 0;
+    await supabase.from('cms_hero').insert({
       title_slug: options.slug,
+      sort_order,
+      is_active: true,
     });
   }
 }

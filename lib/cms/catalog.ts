@@ -10,8 +10,10 @@ import {
   trendingMovies as staticTrending,
 } from '@/lib/data';
 import { characters as staticCharacters } from '@/lib/characters';
+import { isLegacyHeroSchemaError } from '@/lib/cms/hero-schema';
 
 export type HeroContent = {
+  id?: number;
   slug: string;
   title: string;
   description: string;
@@ -26,6 +28,7 @@ export type HeroContent = {
 function heroFromTitle(
   heroTitle: Title | undefined,
   overrides: {
+    id?: number;
     slug?: string;
     title?: string;
     description?: string;
@@ -36,6 +39,7 @@ function heroFromTitle(
   }
 ): HeroContent {
   return {
+    id: overrides.id,
     slug: overrides.slug ?? heroTitle?.slug ?? staticHero.slug,
     title: overrides.title ?? heroTitle?.title ?? staticHero.title,
     description: overrides.description ?? heroTitle?.description ?? staticHero.description,
@@ -53,11 +57,24 @@ export type CatalogSnapshot = {
   titles: Title[];
   characters: Character[];
   creators: Creator[];
+  heroes: HeroContent[];
   hero: HeroContent;
   trending: Title[];
   continueWatching: ContinueWatchingItem[];
   aiMovies: Title[];
   nextWatch: ContinueWatchingItem[];
+};
+
+type CmsHeroRow = {
+  id: number;
+  title_slug: string | null;
+  subtitle: string | null;
+  description: string | null;
+  image_url: string;
+  rating: number;
+  category: string;
+  sort_order?: number | null;
+  is_active?: boolean | null;
 };
 
 type CmsTitleRow = {
@@ -209,23 +226,76 @@ function mapSeasonRows(rows: CmsSeasonRow[]): Map<string, CmsSeason[]> {
   return byTitle;
 }
 
-export function getStaticCatalog(): CatalogSnapshot {
+function mapHeroRows(rows: CmsHeroRow[], titles: Title[]): HeroContent[] {
+  const titleBySlug = new Map(titles.map((title) => [title.slug, title]));
+  const fallbackTitle = titles[0];
+
+  return rows
+    .filter((row) => row.is_active !== false)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.id - b.id)
+    .map((row) => {
+      const heroTitle = row.title_slug ? titleBySlug.get(row.title_slug) : undefined;
+      const baseTitle = heroTitle ?? fallbackTitle;
+      if (!baseTitle) return null;
+      return heroFromTitle(baseTitle, {
+        id: row.id,
+        slug: baseTitle.slug,
+        title: baseTitle.title,
+        description: row.description ?? baseTitle.description,
+        rating: row.rating ?? undefined,
+        category: row.category ?? baseTitle.genre,
+        image: row.image_url ?? baseTitle.image,
+        subtitle: row.subtitle,
+      });
+    })
+    .filter((hero): hero is HeroContent => Boolean(hero));
+}
+
+function buildStaticHeroes(): HeroContent[] {
   const staticHeroTitle = staticTitles.find((title) => title.slug === staticHero.slug);
+  const primary = heroFromTitle(staticHeroTitle, {
+    slug: staticHero.slug,
+    title: staticHero.title,
+    description: staticHero.description,
+    rating: staticHero.rating,
+    category: staticHero.category,
+    image: staticHero.image,
+    subtitle: staticHero.subtitle,
+  });
+
+  const extraSlugs = staticTrending
+    .map((title) => title.slug)
+    .filter((slug) => slug !== primary.slug)
+    .slice(0, 2);
+
+  const extras = extraSlugs
+    .map((slug) => staticTitles.find((title) => title.slug === slug))
+    .filter((title): title is Title => Boolean(title))
+    .map((title) =>
+      heroFromTitle(title, {
+        slug: title.slug,
+        title: title.title,
+        description: title.description,
+        rating: title.maturityRating,
+        category: title.genre,
+        image: title.image,
+        subtitle: title.subtitle,
+      })
+    );
+
+  return [primary, ...extras];
+}
+
+export function getStaticCatalog(): CatalogSnapshot {
+  const heroes = buildStaticHeroes();
 
   return {
     source: 'static',
     titles: staticTitles,
     characters: staticCharacters,
     creators: staticCreators,
-    hero: heroFromTitle(staticHeroTitle, {
-      slug: staticHero.slug,
-      title: staticHero.title,
-      description: staticHero.description,
-      rating: staticHero.rating,
-      category: staticHero.category,
-      image: staticHero.image,
-      subtitle: staticHero.subtitle,
-    }),
+    heroes,
+    hero: heroes[0],
     trending: staticTrending,
     continueWatching: staticContinueWatching,
     aiMovies: staticAiMovies,
@@ -314,6 +384,8 @@ export function finalizeCatalogSnapshot(snapshot: CatalogSnapshot): CatalogSnaps
   return {
     ...snapshot,
     titles: Array.from(titleBySlug.values()),
+    heroes: snapshot.heroes?.length ? snapshot.heroes : snapshot.hero ? [snapshot.hero] : [],
+    hero: snapshot.heroes?.[0] ?? snapshot.hero,
   };
 }
 
@@ -331,7 +403,6 @@ export async function fetchCatalogFromCms(supabase: any): Promise<CatalogSnapsho
     { data: titleRows },
     { data: characterRows },
     { data: creatorRows },
-    { data: heroRow },
     { data: sectionItems },
     { data: seasonRows, error: seasonsError },
   ] = await Promise.all([
@@ -342,7 +413,6 @@ export async function fetchCatalogFromCms(supabase: any): Promise<CatalogSnapsho
       .order('title'),
     supabase.from('cms_characters').select('*').eq('published', true).order('name'),
     supabase.from('cms_creators').select('*').eq('published', true).order('sort_order'),
-    supabase.from('cms_hero').select('*').eq('id', 1).maybeSingle(),
     supabase
       .from('cms_section_items')
       .select('section_id, sort_order, progress, episode_label, cms_titles(*)')
@@ -353,6 +423,13 @@ export async function fetchCatalogFromCms(supabase: any): Promise<CatalogSnapsho
       .order('season_number'),
   ]);
 
+  let heroRows: CmsHeroRow[] | null = null;
+  let heroFetch = await supabase.from('cms_hero').select('*').order('sort_order').order('id');
+  if (isLegacyHeroSchemaError(heroFetch.error)) {
+    heroFetch = await supabase.from('cms_hero').select('*').order('id');
+  }
+  heroRows = (heroFetch.data as CmsHeroRow[] | null) ?? null;
+
   const seasonsByTitleId =
     seasonsError?.code === 'PGRST205' ? new Map<string, CmsSeason[]>() : mapSeasonRows((seasonRows as CmsSeasonRow[] | null) ?? []);
 
@@ -362,17 +439,13 @@ export async function fetchCatalogFromCms(supabase: any): Promise<CatalogSnapsho
     ) ?? [];
   const titleBySlug = new Map(titles.map((title) => [title.slug, title]));
 
-  const heroFromSlug = heroRow?.title_slug ? titleBySlug.get(heroRow.title_slug) : undefined;
-  const heroTitle = heroFromSlug ?? titles[0];
-  const hero = heroFromTitle(heroTitle, {
-    slug: heroTitle?.slug,
-    title: heroTitle?.title,
-    description: heroRow?.description ?? undefined,
-    rating: heroRow?.rating ?? undefined,
-    category: heroRow?.category ?? undefined,
-    image: heroRow?.image_url ?? undefined,
-    subtitle: heroRow?.subtitle,
-  });
+  const heroes = mapHeroRows(heroRows ?? [], titles);
+  const hero =
+    heroes[0] ??
+    heroFromTitle(titles[0], {
+      slug: titles[0]?.slug,
+      title: titles[0]?.title,
+    });
 
   function sectionTitles(sectionId: string, withProgress = false): ContinueWatchingItem[] {
     const items =
@@ -426,6 +499,7 @@ export async function fetchCatalogFromCms(supabase: any): Promise<CatalogSnapsho
     titles,
     characters: mappedCharacters.length > 0 ? mappedCharacters : staticCharacters,
     creators: mappedCreators.length > 0 ? mappedCreators : staticCreators,
+    heroes: heroes.length > 0 ? heroes : [hero],
     hero,
     trending: withTitleFallback(trendingFromSection, fallbackTrending),
     continueWatching: withSectionFallback(nextWatchFromSection, fallbackNextWatch),

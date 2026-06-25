@@ -21,6 +21,7 @@ export interface HeroBannerProps {
   videoUrl?: string;
   trailerUrl?: string;
   watchProgressPercent?: number;
+  onPlaybackChange?: (playing: boolean) => void;
 }
 
 export function HeroBanner({
@@ -33,6 +34,7 @@ export function HeroBanner({
   videoUrl,
   trailerUrl,
   watchProgressPercent = 0,
+  onPlaybackChange,
 }: HeroBannerProps) {
   const previewSrc = trailerUrl || videoUrl;
   const playSrc = videoUrl || trailerUrl;
@@ -117,6 +119,7 @@ export function HeroBanner({
     setShowImage(false);
     setIsPlaying(true);
     setIsMuted(false);
+    onPlaybackChange?.(true);
 
     if (!video.src.endsWith(playSrc)) {
       video.src = playSrc;
@@ -226,6 +229,7 @@ export function HeroBanner({
                 videoRef.current?.pause();
                 setIsPlaying(false);
                 setIsMuted(true);
+                onPlaybackChange?.(false);
                 persistProgress();
               }}
               className="p-2 rounded-full bg-background/60 border border-border hover:bg-background/80 smooth-transition"

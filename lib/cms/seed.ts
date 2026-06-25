@@ -110,16 +110,35 @@ export async function seedCmsFromStatic(supabase: SupabaseClient) {
     if (error) throw new Error(`Creator "${creator.name}": ${formatDbError(error)}`);
   }
 
-  const { error: heroError } = await supabase.from('cms_hero').upsert({
-    id: 1,
-    title_slug: heroContent.slug,
-    subtitle: heroContent.subtitle ?? null,
-    description: heroContent.description,
-    image_url: heroContent.image,
-    rating: heroContent.rating,
-    category: heroContent.category,
-    updated_at: new Date().toISOString(),
-  });
+  const heroSlides = [
+    {
+      title_slug: heroContent.slug,
+      subtitle: heroContent.subtitle ?? null,
+      description: heroContent.description,
+      image_url: heroContent.image,
+      rating: heroContent.rating,
+      category: heroContent.category,
+      sort_order: 0,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    },
+    ...trendingMovies.slice(0, 2).map((title, index) => ({
+      title_slug: title.slug,
+      subtitle: title.subtitle ?? null,
+      description: title.description,
+      image_url: title.image,
+      rating: title.maturityRating,
+      category: title.genre,
+      sort_order: index + 1,
+      is_active: true,
+      updated_at: new Date().toISOString(),
+    })),
+  ];
+
+  const { error: heroDeleteError } = await supabase.from('cms_hero').delete().neq('id', 0);
+  if (heroDeleteError) throw new Error(`Hero banner reset: ${formatDbError(heroDeleteError)}`);
+
+  const { error: heroError } = await supabase.from('cms_hero').insert(heroSlides);
   if (heroError) throw new Error(`Hero banner: ${formatDbError(heroError)}`);
 
   async function seedSection(sectionId: string, items: typeof allTitles, withProgress = false) {

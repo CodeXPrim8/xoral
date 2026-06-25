@@ -81,19 +81,24 @@ create table if not exists public.cms_creators (
   updated_at timestamptz not null default now()
 );
 
--- Home hero (single row)
+-- Home hero slides (admin can add many)
 create table if not exists public.cms_hero (
-  id integer primary key default 1 check (id = 1),
+  id serial primary key,
   title_slug text,
   subtitle text,
   description text,
   image_url text not null default '/posters/xoral-hero.svg',
   rating integer not null default 16,
   category text not null default 'Drama',
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
-insert into public.cms_hero (id) values (1) on conflict (id) do nothing;
+insert into public.cms_hero (title_slug, sort_order)
+select null, 0
+where not exists (select 1 from public.cms_hero);
 
 -- Home page sections
 create table if not exists public.cms_sections (

@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
           { href: '/admin/titles', title: 'Titles', desc: 'Add movies & series, upload posters and video URLs' },
           { href: '/admin/characters', title: 'AI Stars', desc: 'Manage cast profiles and avatars' },
           { href: '/admin/creators', title: 'Creators', desc: 'Edit featured creators on the home page' },
-          { href: '/admin/hero', title: 'Hero Banner', desc: 'Set the main spotlight title on the home page' },
+          { href: '/admin/hero', title: 'Hero Banners', desc: 'Add multiple spotlight slides for the home page carousel' },
           { href: '/admin/sections', title: 'Home Sections', desc: 'Choose what appears in each carousel row' },
         ].map((card) => (
           <Link
