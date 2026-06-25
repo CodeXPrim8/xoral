@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { getNotifications, markNotificationsRead } from '@/lib/user-data';
 import { useAuth } from '@/components/AuthProvider';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import type { Notification } from '@/lib/types';
+import { XoralLogo } from '@/components/XoralLogo';
 
 export function Header() {
   const pathname = usePathname();
@@ -17,8 +18,12 @@ export function Header() {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!user?.id) {
+      setNotifications([]);
+      return;
+    }
     getNotifications().then(setNotifications);
-  }, [pathname, user]);
+  }, [pathname, user?.id]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -32,7 +37,9 @@ export function Header() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const showAuth = isSupabaseConfigured();
-  const initial = user?.email?.[0]?.toUpperCase() ?? 'G';
+  const displayInitial =
+    (user?.user_metadata?.display_name as string | undefined)?.[0]?.toUpperCase() ??
+    user?.email?.[0]?.toUpperCase();
 
   const navLink = (href: string, label: string) => (
     <Link
@@ -47,10 +54,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 border-b border-border">
-      <div className="w-full px-6 sm:px-8">
+      <div className="xoral-page">
         <div className="flex items-center justify-between h-14">
           <Link href="/" className="flex items-center gap-3 flex-shrink-0">
-            <span className="text-primary text-2xl font-black tracking-tight">XORAL</span>
+            <XoralLogo size="sm" showWordmark />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 ml-8">
@@ -67,9 +74,17 @@ export function Header() {
               <Search className="w-5 h-5 text-foreground" />
             </Link>
             {showAuth && !loading && !user && (
-              <Link href="/login" className="text-sm font-semibold text-primary hover:opacity-80 smooth-transition">
-                Sign In
-              </Link>
+              <>
+                <Link
+                  href="/signup"
+                  className="hidden sm:inline text-sm font-semibold text-foreground/80 hover:text-foreground smooth-transition"
+                >
+                  Sign Up
+                </Link>
+                <Link href="/login" className="text-sm font-semibold text-primary hover:opacity-80 smooth-transition">
+                  Sign In
+                </Link>
+              </>
             )}
             <div className="relative" ref={panelRef}>
               <button
@@ -94,12 +109,16 @@ export function Header() {
                     <p className="font-semibold text-sm">Notifications</p>
                   </div>
                   <div className="max-h-72 overflow-y-auto">
-                    {notifications.map((notification) => (
-                      <div key={notification.id} className="px-4 py-3 border-b border-border/50 text-sm">
-                        <p className="font-medium">{notification.title}</p>
-                        <p className="text-foreground/60 text-xs mt-1">{notification.message}</p>
-                      </div>
-                    ))}
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-foreground/60 text-center">No notifications yet</div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div key={notification.id} className="px-4 py-3 border-b border-border/50 text-sm">
+                          <p className="font-medium">{notification.title}</p>
+                          <p className="text-foreground/60 text-xs mt-1">{notification.message}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -109,16 +128,17 @@ export function Header() {
                 href="/profile"
                 className="flex items-center justify-center w-8 h-8 rounded bg-primary text-primary-foreground text-xs font-bold hover:opacity-70 smooth-transition"
               >
-                {initial}
+                {displayInitial}
               </Link>
-            ) : (
+            ) : showAuth ? (
               <Link
-                href={showAuth ? '/login' : '/profile'}
-                className="flex items-center justify-center w-8 h-8 rounded bg-primary text-primary-foreground text-xs font-bold hover:opacity-70 smooth-transition"
+                href="/login"
+                className="flex items-center justify-center w-8 h-8 rounded border border-border text-foreground/70 hover:text-foreground smooth-transition"
+                title="Sign in"
               >
-                {initial}
+                <User className="w-4 h-4" />
               </Link>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

@@ -1,86 +1,150 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
 import { createClientIfConfigured } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { migrateLocalStorageToSupabase } from '@/lib/user-data';
+import { useAuth } from '@/components/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { XoralLogo } from '@/components/XoralLogo';
+
+const loginSchema = z.object({
+  email: z.string().trim().email('Enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginValues = z.infer<typeof loginSchema>;
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') ?? '/';
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { user, loading: authLoading } = useAuth();
+  const justRegistered = searchParams.get('registered') === '1';
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const pendingNavigation = useRef(false);
+  const form = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  useEffect(() => {
+    if (!authLoading && user?.id) {
+      if (pendingNavigation.current) {
+        toast.success('Welcome back to XORAL');
+        pendingNavigation.current = false;
+        void migrateLocalStorageToSupabase();
+      }
+      router.replace('/');
+    }
+  }, [authLoading, user?.id, router]);
+
+  async function handleSubmit(values: LoginValues) {
     setError('');
-    setLoading(true);
 
     if (!isSupabaseConfigured()) {
       setError('Supabase is not configured. Add env vars to enable accounts.');
-      setLoading(false);
       return;
     }
 
-    const supabase = createClientIfConfigured()!;
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const supabase = createClientIfConfigured();
+    if (!supabase) {
+      setError('Unable to connect to Supabase. Please check environment variables.');
+      return;
+    }
 
+    const { error: signInError } = await supabase.auth.signInWithPassword(values);
     if (signInError) {
-      setError(signInError.message);
-      setLoading(false);
+      setError(
+        signInError.message === 'Failed to fetch'
+          ? 'Could not reach XORAL accounts. Check your connection and try again.'
+          : signInError.message
+      );
       return;
     }
 
-    await migrateLocalStorageToSupabase();
-    router.push(next);
-    router.refresh();
+    pendingNavigation.current = true;
   }
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
       <Header />
-      <main className="max-w-md mx-auto px-4 py-16">
+      <main className="xoral-page-narrow py-16">
         <div className="glass-card border rounded-2xl p-8 space-y-6">
-          <div>
-            <h1 className="text-3xl font-black">Sign in to XORAL</h1>
-            <p className="text-foreground/60 mt-2">Access your list, follows, and community posts across devices.</p>
+          <div className="flex flex-col items-center text-center space-y-4">
+            <XoralLogo size="lg" glow />
+            <div>
+              <h1 className="text-3xl font-black">Sign in to XORAL</h1>
+              <p className="text-foreground/60 mt-2">
+                Access your list, follows, and community posts across devices.
+              </p>
+            </div>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full mt-1 bg-input/50 border border-border rounded-lg px-4 py-2"
-              />
+          {justRegistered && (
+            <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground/90">
+              Account created. Check your email for a verification link, then sign in below.
             </div>
-            <div>
-              <label className="text-sm font-medium">Password</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full mt-1 bg-input/50 border border-border rounded-lg px-4 py-2"
+          )}
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4" noValidate>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" autoComplete="email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            {error && <p className="text-destructive text-sm">{error}</p>}
-            <button type="submit" disabled={loading} className="w-full glass-button py-3 rounded-lg font-bold">
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" autoComplete="current-password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {error && <p className="text-destructive text-sm">{error}</p>}
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting || authLoading}
+                className="w-full h-11 font-bold"
+              >
+                {form.formState.isSubmitting ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+          </Form>
           <p className="text-sm text-center text-foreground/60">
             New to XORAL?{' '}
-            <Link href={`/signup?next=${encodeURIComponent(next)}`} className="text-primary hover:underline">
+            <Link href="/signup" className="text-primary hover:underline">
               Create an account
             </Link>
           </p>

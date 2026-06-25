@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { AuthProvider } from '@/components/AuthProvider'
+import { CatalogProvider } from '@/components/CatalogProvider'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
@@ -12,8 +13,8 @@ export const metadata: Metadata = {
   title: 'XORAL — Premium AI Cinema',
   description: 'Stream AI-powered cinema on XORAL. Trending movies, exclusive AI-generated originals, and virtual AI Stars across every screen.',
   icons: {
-    icon: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
 }
 
@@ -26,7 +27,9 @@ export default function RootLayout({
     <html lang="en" className={`dark bg-background ${geist.variable} ${geistMono.variable}`}>
       <body className={`${geist.className} antialiased bg-background text-foreground`}>
         <AuthProvider>
-          {children}
+          <CatalogProvider>
+            {children}
+          </CatalogProvider>
         </AuthProvider>
         <Toaster />
         {process.env.NODE_ENV === 'production' && <Analytics />}

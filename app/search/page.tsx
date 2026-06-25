@@ -6,31 +6,32 @@ import { MobileNav } from '@/components/MobileNav';
 import { ContentCard } from '@/components/ContentCard';
 import { Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { searchTitles } from '@/lib/catalog';
-import { characters } from '@/lib/characters';
+import { useCatalog } from '@/components/CatalogProvider';
+import { searchCatalogTitles } from '@/lib/catalog';
 import { SafeImage } from '@/components/SafeImage';
 
 export default function SearchPage() {
+  const catalog = useCatalog();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredContent = useMemo(() => searchTitles(searchQuery), [searchQuery]);
+  const filteredContent = useMemo(() => searchCatalogTitles(catalog, searchQuery), [catalog, searchQuery]);
 
   const filteredCharacters = useMemo(() => {
     const normalized = searchQuery.trim().toLowerCase();
     if (!normalized) return [];
-    return characters.filter(
+    return catalog.characters.filter(
       (character) =>
         character.name.toLowerCase().includes(normalized) ||
         character.profession.toLowerCase().includes(normalized) ||
         character.personality.toLowerCase().includes(normalized)
     );
-  }, [searchQuery]);
+  }, [catalog.characters, searchQuery]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      <main className="xoral-page py-12 space-y-8">
         <div className="space-y-6">
           <div>
             <h1 className="text-4xl font-bold text-foreground mb-2">Search</h1>
@@ -61,7 +62,7 @@ export default function SearchPage() {
               {filteredContent.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {filteredContent.map((item) => (
-                    <ContentCard key={item.id} {...item} href={`/title/${item.slug}`} />
+                    <ContentCard key={item.id} {...item} />
                   ))}
                 </div>
               )}

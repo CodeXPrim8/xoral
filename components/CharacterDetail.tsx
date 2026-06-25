@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { characters, getCharacterBySlug } from '@/lib/characters';
-import { getTitlesByCharacterId } from '@/lib/catalog';
+import { useCatalog } from '@/components/CatalogProvider';
+import { getTitlesByCharacterIdInCatalog } from '@/lib/catalog';
 import { ContentCard } from '@/components/ContentCard';
 import { isCharacterFollowed, toggleCharacterFollow, requireAuthForAction } from '@/lib/user-data';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
@@ -11,7 +11,8 @@ import { toast } from 'sonner';
 import { SafeImage } from '@/components/SafeImage';
 
 export function CharacterDetail({ slug }: { slug: string }) {
-  const character = getCharacterBySlug(slug);
+  const catalog = useCatalog();
+  const character = catalog.characters.find((item) => item.slug === slug);
   const [following, setFollowing] = useState(false);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export function CharacterDetail({ slug }: { slug: string }) {
 
   if (!character) return null;
 
-  const filmography = getTitlesByCharacterId(character.id);
+  const filmography = getTitlesByCharacterIdInCatalog(catalog, character.id);
 
   return (
     <div className="space-y-8">
@@ -94,7 +95,7 @@ export function CharacterDetail({ slug }: { slug: string }) {
         {filmography.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filmography.map((title) => (
-              <ContentCard key={title.id} {...title} href={`/title/${title.slug}`} />
+              <ContentCard key={title.id} {...title} />
             ))}
           </div>
         ) : (
@@ -112,14 +113,16 @@ export function CharacterDetail({ slug }: { slug: string }) {
 }
 
 export function MeetTheCast() {
+  const catalog = useCatalog();
+
   return (
     <section className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-foreground mb-2">Meet the Cast</h2>
         <p className="text-foreground/60">XORAL&apos;s virtual AI Stars bringing every story to life</p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-        {characters.slice(0, 7).map((character) => (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-4">
+        {catalog.characters.map((character) => (
           <Link
             key={character.id}
             href={`/ai-stars/${character.slug}`}

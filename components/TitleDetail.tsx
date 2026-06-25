@@ -5,22 +5,36 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Bookmark, Play, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { getTitleBySlug, getCastForTitle } from '@/lib/catalog';
+import { useCatalog } from '@/components/CatalogProvider';
+import { findTitleInCatalog } from '@/lib/cms/catalog';
+import { getCastForTitleInCatalog } from '@/lib/catalog';
+import { watchPath, titlePath } from '@/lib/cms/paths';
 import { isInWatchlist, toggleWatchlist, requireAuthForAction } from '@/lib/user-data';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
+import { getDefaultEpisode } from '@/lib/cms/episodes';
 import { SafeImage } from './SafeImage';
 
 export function TitleActions({ slug }: { slug: string }) {
   const router = useRouter();
   const [saved, setSaved] = useState(false);
+  const catalog = useCatalog();
+  const title = findTitleInCatalog(catalog, slug);
 
   useEffect(() => {
     isInWatchlist(slug).then(setSaved);
   }, [slug]);
 
+  function playHref() {
+    if (title?.seasons?.length) {
+      const ep = getDefaultEpisode(title.seasons);
+      if (ep) return watchPath(slug, { s: ep.seasonNumber, e: ep.episodeNumber });
+    }
+    return watchPath(slug);
+  }
+
   async function handleToggleWatchlist() {
     if (isSupabaseConfigured()) {
-      const allowed = await requireAuthForAction(`/title/${slug}`);
+      const allowed = await requireAuthForAction(titlePath(slug));
       if (!allowed) {
         toast.info('Sign in to save titles to your XORAL account');
         return;
@@ -35,7 +49,7 @@ export function TitleActions({ slug }: { slug: string }) {
     <div className="flex flex-wrap gap-3">
       <button
         type="button"
-        onClick={() => router.push(`/watch/${slug}`)}
+        onClick={() => router.push(playHref())}
         className="flex items-center gap-2 bg-white text-background px-8 py-3 rounded font-bold hover:bg-white/80 smooth-transition"
       >
         <Play className="w-5 h-5 fill-current" />
@@ -54,10 +68,11 @@ export function TitleActions({ slug }: { slug: string }) {
 }
 
 export function TitleDetail({ slug }: { slug: string }) {
-  const title = getTitleBySlug(slug);
+  const catalog = useCatalog();
+  const title = findTitleInCatalog(catalog, slug);
   if (!title) return null;
 
-  const cast = getCastForTitle(slug);
+  const cast = getCastForTitleInCatalog(catalog, slug);
 
   return (
     <div className="space-y-8">
@@ -79,10 +94,43 @@ export function TitleDetail({ slug }: { slug: string }) {
         </div>
       </div>
 
+      {title.seasons && title.seasons.length > 0 && (
+        <section className="space-y-6">
+          <h2 className="text-2xl font-bold">Seasons & episodes</h2>
+          {title.seasons.map((season) => (
+            <div key={season.id} className="space-y-3">
+              <h3 className="text-lg font-semibold">
+                Season {season.seasonNumber}
+                {season.title ? ` · ${season.title}` : ''}
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {season.episodes.map((episode) => (
+                  <Link
+                    key={episode.id}
+                    href={watchPath(slug, { s: season.seasonNumber, e: episode.episodeNumber })}
+                    className={`glass-card border rounded-xl p-4 hover:bg-card/60 smooth-transition ${
+                      !episode.videoUrl ? 'opacity-50 pointer-events-none' : ''
+                    }`}
+                  >
+                    <p className="text-xs text-foreground/60">
+                      S{season.seasonNumber} E{episode.episodeNumber}
+                    </p>
+                    <p className="font-semibold mt-1">{episode.title}</p>
+                    {episode.description && (
+                      <p className="text-sm text-foreground/60 mt-2 line-clamp-2">{episode.description}</p>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       {cast.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-2xl font-bold">Cast</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-4">
             {cast.map((character) => (
               <Link
                 key={character.id}

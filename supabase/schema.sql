@@ -15,6 +15,10 @@ create policy "Users can view own profile"
   on public.profiles for select
   using (auth.uid() = id);
 
+create policy "Anyone can view public profile fields"
+  on public.profiles for select
+  using (true);
+
 create policy "Users can update own profile"
   on public.profiles for update
   using (auth.uid() = id);
@@ -28,7 +32,10 @@ create or replace function public.handle_new_user()
 returns trigger as $$
 begin
   insert into public.profiles (id, display_name)
-  values (new.id, split_part(new.email, '@', 1));
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1))
+  );
   return new;
 end;
 $$ language plpgsql security definer;
@@ -90,7 +97,7 @@ create policy "Users manage own follows"
 -- Community posts
 create table if not exists public.community_posts (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
   content text not null,
   likes integer not null default 0,
   comments integer not null default 0,
@@ -112,6 +119,23 @@ create policy "Users update own community posts"
   on public.community_posts for update
   using (auth.uid() = user_id);
 
+-- Like posts via RPC (avoids RLS blocking likes on other users' posts)
+create or replace function public.like_community_post(post_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.community_posts
+  set likes = likes + 1
+  where id = post_id;
+end;
+$$;
+
+grant execute on function public.like_community_post(uuid) to authenticated;
+grant execute on function public.like_community_post(uuid) to anon;
+
 -- Notifications
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
@@ -129,13 +153,12 @@ create policy "Users manage own notifications"
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- Seed default notifications for new users
+-- Seed welcome notification for new users
 create or replace function public.seed_user_notifications()
 returns trigger as $$
 begin
   insert into public.notifications (user_id, title, message, read) values
-    (new.id, 'Welcome to XORAL', 'Your account is ready. Start exploring AI cinema.', false),
-    (new.id, 'New on XORAL', 'Ashes to Crown — new episodes streaming now.', false);
+    (new.id, 'Welcome to XORAL', 'Your account is ready. Start exploring AI cinema.', false);
   return new;
 end;
 $$ language plpgsql security definer;

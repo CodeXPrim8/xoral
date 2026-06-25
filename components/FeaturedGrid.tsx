@@ -24,9 +24,9 @@ export function FeaturedGrid({ title, items }: FeaturedGridProps) {
         <h2 className="text-3xl font-bold text-foreground">{title}</h2>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-4">
         {items.map((item) => (
-          <ContentCard key={item.id} {...item} href={`/title/${item.slug}`} />
+          <ContentCard key={item.id} {...item} />
         ))}
       </div>
     </section>

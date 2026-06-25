@@ -7,46 +7,46 @@ import { MobileNav } from '@/components/MobileNav';
 import { ContentCard } from '@/components/ContentCard';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { characters } from '@/lib/characters';
-import { getCharacterAppearances } from '@/lib/catalog';
-import { aiMovies } from '@/lib/data';
+import { useCatalog } from '@/components/CatalogProvider';
+import { getCharacterAppearancesInCatalog } from '@/lib/catalog';
 import { isCharacterFollowed, toggleCharacterFollow, requireAuthForAction } from '@/lib/user-data';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { SafeImage } from '@/components/SafeImage';
 
 export default function AIStarsPage() {
+  const catalog = useCatalog();
   const [followed, setFollowed] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
       const ids = await Promise.all(
-        characters.map(async (c) => ((await isCharacterFollowed(c.id)) ? c.id : null))
+        catalog.characters.map(async (c) => ((await isCharacterFollowed(c.id)) ? c.id : null))
       );
       setFollowed(ids.filter(Boolean) as string[]);
     }
     load();
-  }, []);
+  }, [catalog.characters]);
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      <main className="xoral-page py-12 space-y-12">
         <div className="space-y-4">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-8 h-8 text-accent" />
             <h1 className="text-4xl md:text-5xl font-black text-foreground">AI Stars</h1>
           </div>
           <p className="text-lg text-foreground/70 max-w-2xl">
-            Meet XORAL&apos;s virtual cast — {characters.length} AI performers revolutionizing cinema with precision, versatility, and unforgettable presence.
+            Meet XORAL&apos;s virtual cast — {catalog.characters.length} AI performers revolutionizing cinema with precision, versatility, and unforgettable presence.
           </p>
         </div>
 
         <section className="space-y-6">
           <h2 className="text-2xl font-bold text-foreground">All AI Stars</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {characters.map((character) => {
-              const appearances = getCharacterAppearances(character.id);
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
+            {catalog.characters.map((character) => {
+              const appearances = getCharacterAppearancesInCatalog(catalog, character.id);
               const isFollowed = followed.includes(character.id);
 
               return (
@@ -102,8 +102,8 @@ export default function AIStarsPage() {
             <p className="text-foreground/60">Movies and series featuring XORAL AI Stars</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {aiMovies.map((movie) => (
-              <ContentCard key={movie.id} {...movie} href={`/title/${movie.slug}`} />
+            {catalog.aiMovies.map((movie) => (
+              <ContentCard key={movie.id} {...movie} />
             ))}
           </div>
         </section>

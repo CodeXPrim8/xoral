@@ -4,24 +4,26 @@ import { useMemo, useState } from 'react';
 import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
 import { FeaturedGrid } from '@/components/FeaturedGrid';
-import { filterTitles } from '@/lib/catalog';
+import { useCatalog } from '@/components/CatalogProvider';
+import { filterCatalogTitles } from '@/lib/catalog';
 import { genres } from '@/lib/data';
 
 export default function MoviesPage() {
+  const catalog = useCatalog();
   const [query, setQuery] = useState('');
   const [genre, setGenre] = useState('All Genres');
   const [sort, setSort] = useState('Latest');
 
   const movies = useMemo(
-    () => filterTitles({ query, genre, sort }),
-    [query, genre, sort]
+    () => filterCatalogTitles(catalog, { query, genre, sort }),
+    [catalog, query, genre, sort]
   );
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      <main className="xoral-page py-12 space-y-8">
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-black text-foreground">All Movies</h1>
           <p className="text-lg text-foreground/70">Explore the XORAL catalog of films and series</p>

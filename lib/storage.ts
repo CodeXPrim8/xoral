@@ -1,5 +1,4 @@
 import type { CommunityPost, Notification } from './types';
-import { creatorAvatar } from './media';
 
 const KEYS = {
   watchlist: 'xoral_watchlist',
@@ -24,26 +23,7 @@ function writeJson<T>(key: string, value: T) {
   window.localStorage.setItem(key, JSON.stringify(value));
 }
 
-const defaultNotifications: Notification[] = [
-  {
-    id: 'n1',
-    title: 'New episode available',
-    message: 'Ashes to Crown — Episode 6 is now streaming on XORAL.',
-    read: false,
-  },
-  {
-    id: 'n2',
-    title: 'Added to your list',
-    message: 'Nexus Protocol was saved to your watchlist.',
-    read: false,
-  },
-  {
-    id: 'n3',
-    title: 'AI Star spotlight',
-    message: 'Lora Adams appears in two new XORAL originals this week.',
-    read: true,
-  },
-];
+const defaultNotifications: Notification[] = [];
 
 export function getWatchlist(): string[] {
   return readJson<string[]>(KEYS.watchlist, []);
@@ -117,7 +97,7 @@ export function addCommunityPost(content: string) {
   const post: CommunityPost = {
     id: `local-${Date.now()}`,
     author: 'You',
-    avatar: creatorAvatar('cr1'),
+    avatar: '/placeholder-user.jpg',
     content,
     timestamp: 'Just now',
     likes: 0,
@@ -137,12 +117,7 @@ export function likeCommunityPost(id: string) {
 }
 
 export function getNotifications(): Notification[] {
-  const stored = readJson<Notification[] | null>(KEYS.notifications, null);
-  if (!stored) {
-    writeJson(KEYS.notifications, defaultNotifications);
-    return defaultNotifications;
-  }
-  return stored;
+  return readJson<Notification[]>(KEYS.notifications, []);
 }
 
 export function markNotificationsRead() {

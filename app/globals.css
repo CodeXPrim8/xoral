@@ -166,4 +166,28 @@
   .xoral-badge {
     @apply absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 text-xs font-bold rounded;
   }
+
+  /* Full-width page shell — scales padding on large screens instead of capping width */
+  .xoral-page {
+    width: 100%;
+    --xoral-pad: clamp(1rem, 4vw, 3.5rem);
+    padding-inline: var(--xoral-pad);
+  }
+
+  .xoral-page-narrow {
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+    --xoral-pad: clamp(1rem, 4vw, 3.5rem);
+    padding-inline: var(--xoral-pad);
+  }
+
+  /* Carousel rows extend to the right screen edge on large displays */
+  .xoral-carousel-bleed {
+    margin-right: calc(-1 * var(--xoral-pad));
+  }
+
+  .xoral-logo-glow {
+    filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.4));
+  }
 }

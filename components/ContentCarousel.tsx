@@ -37,7 +37,7 @@ export function ContentCarousel({ title, subtitle, items, viewAllHref }: Content
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
-      const scrollAmount = 400;
+      const scrollAmount = scrollRef.current.clientWidth * 0.75;
       const newScroll =
         direction === 'left'
           ? scrollRef.current.scrollLeft - scrollAmount
@@ -48,7 +48,7 @@ export function ContentCarousel({ title, subtitle, items, viewAllHref }: Content
   };
 
   return (
-    <section className="space-y-3 md:space-y-4">
+    <section className="space-y-3 md:space-y-4 xoral-carousel-bleed">
       {title && (
         <div className="flex items-center justify-between px-1">
           <div>
@@ -80,8 +80,8 @@ export function ContentCarousel({ title, subtitle, items, viewAllHref }: Content
           className="flex gap-2 md:gap-3 overflow-x-auto scroll-smooth scrollbar-hide pb-2"
         >
           {items.map((item) => (
-            <div key={item.id} className="flex-shrink-0 w-32 md:w-40">
-              <ContentCard {...item} href={`/title/${item.slug}`} />
+            <div key={item.id} className="flex-shrink-0 w-32 sm:w-36 md:w-40 lg:w-48 xl:w-52 2xl:w-56">
+              <ContentCard {...item} />
             </div>
           ))}
         </div>

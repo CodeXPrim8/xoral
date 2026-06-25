@@ -1,21 +1,21 @@
+import type { User } from '@supabase/supabase-js';
 import { createClientIfConfigured } from '@/lib/supabase/client';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import * as local from '@/lib/storage';
 import type { CommunityPost, Notification } from '@/lib/types';
-import { creatorAvatar } from '@/lib/media';
 
 async function getUserId(): Promise<string | null> {
   const supabase = createClientIfConfigured();
   if (!supabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
-  return user?.id ?? null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user?.id ?? null;
 }
 
 export async function getSessionUser() {
   const supabase = createClientIfConfigured();
   if (!supabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.user ?? null;
 }
 
 export function loginUrl(next?: string) {
@@ -141,25 +141,26 @@ export async function isCharacterFollowed(id: string) {
 }
 
 export async function getCommunityPosts(): Promise<CommunityPost[]> {
-  const userId = await getUserId();
-  if (!userId) return local.getCommunityPosts();
+  const supabase = createClientIfConfigured();
+  if (!supabase) return local.getCommunityPosts();
 
-  const supabase = createClientIfConfigured()!;
   const { data } = await supabase
     .from('community_posts')
-    .select('id, content, likes, comments, created_at')
-    .eq('user_id', userId)
+    .select('id, content, likes, comments, created_at, profiles(display_name, avatar_url)')
     .order('created_at', { ascending: false });
 
-  return (data ?? []).map((row) => ({
-    id: row.id,
-    author: 'You',
-    avatar: creatorAvatar('cr1'),
-    content: row.content,
-    timestamp: 'Just now',
-    likes: row.likes,
-    comments: row.comments,
-  }));
+  return (data ?? []).map((row) => {
+    const profile = row.profiles as { display_name?: string; avatar_url?: string } | null;
+    return {
+      id: row.id,
+      author: profile?.display_name ?? 'Member',
+      avatar: profile?.avatar_url ?? '/placeholder-user.jpg',
+      content: row.content,
+      timestamp: new Date(row.created_at).toLocaleDateString(),
+      likes: row.likes,
+      comments: row.comments,
+    };
+  });
 }
 
 export async function addCommunityPost(content: string): Promise<CommunityPost[]> {
@@ -176,10 +177,7 @@ export async function likeCommunityPost(id: string): Promise<CommunityPost[]> {
   if (!userId) return local.likeCommunityPost(id);
 
   const supabase = createClientIfConfigured()!;
-  const { data } = await supabase.from('community_posts').select('likes').eq('id', id).single();
-  if (data) {
-    await supabase.from('community_posts').update({ likes: data.likes + 1 }).eq('id', id);
-  }
+  await supabase.rpc('like_community_post', { post_id: id });
   return getCommunityPosts();
 }
 
@@ -214,14 +212,57 @@ export async function markNotificationsRead(): Promise<Notification[]> {
 export async function getProfile() {
   const user = await getSessionUser();
   if (!user) return null;
+  return getProfileForUser(user);
+}
 
+export async function getProfileForUser(user: User) {
   const supabase = createClientIfConfigured()!;
-  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  let { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+
+  const displayNameFromMeta =
+    (user.user_metadata?.display_name as string | undefined)?.trim() ||
+    user.email?.split('@')[0] ||
+    'Member';
+
+  if (!data) {
+    const { data: created } = await supabase
+      .from('profiles')
+      .insert({ id: user.id, display_name: displayNameFromMeta })
+      .select('*')
+      .maybeSingle();
+    data = created;
+  }
+
   return {
     email: user.email ?? '',
-    displayName: data?.display_name ?? user.email?.split('@')[0] ?? 'Member',
-    avatarUrl: data?.avatar_url ?? creatorAvatar('cr1'),
+    displayName: data?.display_name ?? displayNameFromMeta,
+    avatarUrl: data?.avatar_url ?? '/placeholder-user.jpg',
     plan: data?.plan ?? 'Free',
+    role: data?.role ?? 'user',
+    memberSince: data?.created_at ?? user.created_at,
+  };
+}
+
+export async function getProfileStats() {
+  const userId = await getUserId();
+  if (!userId) {
+    return { titlesSaved: 0, titlesWatched: 0, communityPosts: 0 };
+  }
+  return getProfileStatsForUser(userId);
+}
+
+export async function getProfileStatsForUser(userId: string) {
+  const supabase = createClientIfConfigured()!;
+  const [watchlist, watched, postsResult] = await Promise.all([
+    supabase.from('watchlist').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('watched').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+    supabase.from('community_posts').select('id', { count: 'exact', head: true }).eq('user_id', userId),
+  ]);
+
+  return {
+    titlesSaved: watchlist.count ?? 0,
+    titlesWatched: watched.count ?? 0,
+    communityPosts: postsResult.count ?? 0,
   };
 }
 

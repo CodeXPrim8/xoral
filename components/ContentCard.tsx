@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Play } from 'lucide-react';
 import type { ContentType } from '@/lib/types';
+import { titlePath, watchPath } from '@/lib/cms/paths';
 import { SafeImage } from './SafeImage';
 
 interface ContentCardProps {
@@ -29,7 +30,7 @@ export function ContentCard({
 }: ContentCardProps) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
-  const linkHref = href ?? (slug ? `/title/${slug}` : undefined);
+  const linkHref = href ?? (slug ? titlePath(slug) : undefined);
 
   const cardContent = (
     <div
@@ -64,7 +65,7 @@ export function ContentCard({
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (slug) router.push(`/watch/${slug}`);
+                if (slug) router.push(watchPath(slug));
               }}
               className="w-full glass-button py-1.5 px-2 rounded text-xs font-bold flex items-center justify-center gap-1"
             >

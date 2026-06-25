@@ -5,11 +5,11 @@ import { Header } from '@/components/Header';
 import { MobileNav } from '@/components/MobileNav';
 import { ContentCard } from '@/components/ContentCard';
 import { Bookmark, Clock, Check } from 'lucide-react';
-import { continueWatching } from '@/lib/data';
-import { getAllTitles } from '@/lib/catalog';
+import { useCatalog } from '@/components/CatalogProvider';
 import { getWatchlist, getWatched } from '@/lib/user-data';
 
 export default function LibraryPage() {
+  const catalog = useCatalog();
   const [activeTab, setActiveTab] = useState<'continue' | 'watchlist' | 'watched'>('continue');
   const [watchlistSlugs, setWatchlistSlugs] = useState<string[]>([]);
   const [watchedSlugs, setWatchedSlugs] = useState<string[]>([]);
@@ -23,7 +23,7 @@ export default function LibraryPage() {
     load();
   }, [activeTab]);
 
-  const allTitles = getAllTitles();
+  const allTitles = catalog.titles;
 
   const watchlistItems = useMemo(
     () => allTitles.filter((title) => watchlistSlugs.includes(title.slug)),
@@ -45,7 +45,7 @@ export default function LibraryPage() {
     <div className="min-h-screen bg-background text-foreground pb-24 md:pb-8">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+      <main className="xoral-page py-12 space-y-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3 mb-2">
             <Bookmark className="w-8 h-8 text-accent" />
@@ -78,10 +78,10 @@ export default function LibraryPage() {
 
         <div>
           {activeTab === 'continue' && (
-            continueWatching.length > 0 ? (
+            catalog.nextWatch.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {continueWatching.map((item) => (
-                  <ContentCard key={item.id} {...item} href={`/title/${item.slug}`} />
+                {catalog.nextWatch.map((item) => (
+                  <ContentCard key={item.id} {...item} />
                 ))}
               </div>
             ) : (
@@ -95,7 +95,7 @@ export default function LibraryPage() {
             watchlistItems.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {watchlistItems.map((item) => (
-                  <ContentCard key={item.id} {...item} href={`/title/${item.slug}`} />
+                  <ContentCard key={item.id} {...item} />
                 ))}
               </div>
             ) : (
@@ -109,7 +109,7 @@ export default function LibraryPage() {
             watchedItems.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {watchedItems.map((item) => (
-                  <ContentCard key={item.id} {...item} href={`/title/${item.slug}`} />
+                  <ContentCard key={item.id} {...item} />
                 ))}
               </div>
             ) : (

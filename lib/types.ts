@@ -1,3 +1,5 @@
+import type { CmsSeason } from '@/lib/cms/episodes';
+
 export type ContentType = 'movie' | 'ai' | 'series';
 
 export type Title = {
@@ -13,7 +15,9 @@ export type Title = {
   cast: string[];
   isAiGenerated: boolean;
   trailerUrl?: string;
+  videoUrl?: string;
   subtitle?: string;
+  seasons?: CmsSeason[];
 };
 
 export type Character = {
