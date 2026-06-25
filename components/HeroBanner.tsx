@@ -6,6 +6,7 @@ import { Info, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { titlePath, watchPath } from '@/lib/cms/paths';
 import { SafeImage } from './SafeImage';
 import { getPlaybackPosition, getResumeSeconds, savePlaybackPosition } from '@/lib/playback-progress';
+import { isVideoFullscreen, requestVideoFullscreen, exitVideoFullscreen } from '@/lib/video-fullscreen';
 
 const IMAGE_PHASE_MS_DESKTOP = 2000;
 const IMAGE_PHASE_MS_MOBILE = 700;
@@ -110,6 +111,46 @@ export function HeroBanner({
     };
   }, [isPlaying, persistProgress]);
 
+  const restoreHeroPreview = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !previewSrc) return;
+
+    video.loop = true;
+    video.controls = false;
+    video.muted = true;
+    if (!video.src.endsWith(previewSrc)) {
+      video.src = previewSrc;
+      video.load();
+    }
+    void video.play().catch(() => {});
+  }, [previewSrc]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isPlaying) return;
+
+    const handleFullscreenExit = () => {
+      if (isVideoFullscreen(video)) return;
+
+      video.pause();
+      persistProgress();
+      setIsPlaying(false);
+      setIsMuted(true);
+      onPlaybackChange?.(false);
+      restoreHeroPreview();
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenExit);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenExit);
+    video.addEventListener('webkitendfullscreen', handleFullscreenExit);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenExit);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenExit);
+      video.removeEventListener('webkitendfullscreen', handleFullscreenExit);
+    };
+  }, [isPlaying, persistProgress, onPlaybackChange, restoreHeroPreview]);
+
   async function startPlayback() {
     if (!playSrc) return;
 
@@ -123,23 +164,30 @@ export function HeroBanner({
 
     if (!video.src.endsWith(playSrc)) {
       video.src = playSrc;
+      video.load();
     }
 
     video.loop = false;
     video.controls = true;
     video.muted = false;
 
-    const applyResume = () => {
-      const resumeAt = getResumeSeconds(slug, video.duration, watchProgressPercent);
-      if (resumeAt > 0) {
-        video.currentTime = resumeAt;
+    const shouldResume = Boolean(videoUrl && playSrc === videoUrl);
+
+    const applyStartPosition = () => {
+      if (shouldResume) {
+        const resumeAt = getResumeSeconds(slug, video.duration, watchProgressPercent);
+        if (resumeAt > 0) {
+          video.currentTime = resumeAt;
+          return;
+        }
       }
+      video.currentTime = 0;
     };
 
     if (video.readyState >= 1) {
-      applyResume();
+      applyStartPosition();
     } else {
-      video.addEventListener('loadedmetadata', applyResume, { once: true });
+      video.addEventListener('loadedmetadata', applyStartPosition, { once: true });
     }
 
     try {
@@ -148,6 +196,12 @@ export function HeroBanner({
       video.muted = true;
       setIsMuted(true);
       await video.play().catch(() => {});
+    }
+
+    try {
+      await requestVideoFullscreen(video);
+    } catch {
+      // Playback still works inline if fullscreen is blocked.
     }
   }
 
@@ -180,9 +234,9 @@ export function HeroBanner({
                 preload="auto"
                 poster={image}
                 muted
-                className={`w-full h-full object-cover smooth-transition ${
-                  showImage && !isPlaying ? 'opacity-0' : 'opacity-100'
-                }`}
+                className={`w-full h-full smooth-transition ${
+                  isPlaying ? 'object-contain bg-black' : 'object-cover'
+                } ${showImage && !isPlaying ? 'opacity-0' : 'opacity-100'}`}
               />
               {showImage && !isPlaying && (
                 <SafeImage
@@ -226,11 +280,17 @@ export function HeroBanner({
             <button
               type="button"
               onClick={() => {
-                videoRef.current?.pause();
+                const video = videoRef.current;
+                if (!video) return;
+                if (isVideoFullscreen(video)) {
+                  exitVideoFullscreen(video);
+                }
+                video.pause();
                 setIsPlaying(false);
                 setIsMuted(true);
                 onPlaybackChange?.(false);
                 persistProgress();
+                restoreHeroPreview();
               }}
               className="p-2 rounded-full bg-background/60 border border-border hover:bg-background/80 smooth-transition"
               aria-label="Pause hero video"
@@ -283,14 +343,6 @@ export function HeroBanner({
                 <Info className="w-5 h-5" />
                 More Info
               </Link>
-              {hasVideo && (
-                <Link
-                  href={watchPath(slug)}
-                  className="text-sm font-semibold text-foreground/70 hover:text-foreground underline-offset-4 hover:underline smooth-transition"
-                >
-                  Full screen
-                </Link>
-              )}
             </div>
           </div>
 
