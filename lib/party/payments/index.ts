@@ -14,8 +14,9 @@ const adapters: Record<PaymentProviderId, PaymentAdapter> = {
 export function getPaymentProvider(): PaymentProviderId {
   const configured = process.env.PARTY_PAYMENT_PROVIDER as PaymentProviderId | undefined;
   if (configured && adapters[configured]) return configured;
+  if (process.env.PAYSTACK_SECRET_KEY) return 'paystack';
   if (process.env.OPAY_MERCHANT_ID && process.env.OPAY_SECRET_KEY) return 'opay';
-  return process.env.NODE_ENV === 'production' ? 'opay' : 'mock';
+  return process.env.NODE_ENV === 'production' ? 'paystack' : 'mock';
 }
 
 export function getPaymentAdapter(id?: PaymentProviderId): PaymentAdapter {

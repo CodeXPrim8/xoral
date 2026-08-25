@@ -15,7 +15,7 @@ export default function CheckoutConfirmPage() {
   const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
-    const reference = params.get('reference') || params.get('orderNo') || params.get('order');
+    const reference = params.get('reference') || params.get('trxref') || params.get('orderNo') || params.get('order');
     const order = params.get('order') || reference;
     if (!order) {
       setError('Missing payment reference.');
@@ -93,7 +93,7 @@ export default function CheckoutConfirmPage() {
   }
 
   if (processing || tickets.length === 0) {
-    return <div className="xp-wrap pt-28 pb-24 text-white/60">Confirming payment with OPay…</div>;
+    return <div className="xp-wrap pt-28 pb-24 text-white/60">Confirming payment with Paystack…</div>;
   }
 
   return (

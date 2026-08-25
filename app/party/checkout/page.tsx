@@ -135,10 +135,10 @@ export default function CheckoutPage() {
         <input name="instagram" placeholder="Instagram handle (optional)" autoCapitalize="none" className="xp-field" />
         {error && <p className="text-sm text-rose-300">{error}</p>}
         <button type="submit" disabled={loading} className="xp-btn xp-btn-primary w-full">
-          {loading ? 'Starting payment…' : `Pay ${formatBuWithNaira(total)}`}
+          {loading ? 'Starting Paystack…' : `Pay ${formatBuWithNaira(total)}`}
         </button>
         <p className="text-xs text-white/35">
-          Pay with OPay. After payment is confirmed, your tickets are emailed to you.
+          Pay with Paystack (card, bank, USSD or transfer). After payment is confirmed, your tickets are emailed to you.
         </p>
       </form>
     </div>

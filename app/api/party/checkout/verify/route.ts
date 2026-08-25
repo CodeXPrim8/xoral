@@ -10,7 +10,11 @@ export async function GET(request: Request) {
   await hydrateStore();
   const url = new URL(request.url);
   const orderId = url.searchParams.get('order');
-  const reference = url.searchParams.get('reference') || url.searchParams.get('orderNo') || orderId;
+  const reference =
+    url.searchParams.get('reference') ||
+    url.searchParams.get('trxref') ||
+    url.searchParams.get('orderNo') ||
+    orderId;
 
   if (!orderId && !reference) {
     return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 });
