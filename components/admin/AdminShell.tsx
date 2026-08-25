@@ -11,6 +11,7 @@ const links = [
   { href: '/admin/characters', label: 'AI Stars' },
   { href: '/admin/creators', label: 'Creators' },
   { href: '/admin/hero', label: 'Hero Banner' },
+  { href: '/admin/party', label: 'Xoral Party' },
   { href: '/admin/sections', label: 'Home Sections' },
 ];
 
@@ -38,7 +39,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               href={link.href}
               className={cn(
                 'block rounded-lg px-3 py-2 text-sm font-medium smooth-transition',
-                pathname === link.href
+                (link.href === '/admin' ? pathname === '/admin' : pathname === link.href || pathname.startsWith(`${link.href}/`))
                   ? 'bg-primary text-primary-foreground'
                   : 'text-foreground/70 hover:bg-card hover:text-foreground'
               )}

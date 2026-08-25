@@ -42,9 +42,19 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Validates JWT and refreshes the session cookie when needed.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Time out so a slow Supabase network cannot freeze every page.
+  let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] = null;
+  try {
+    const result = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('supabase-timeout')), 2500);
+      }),
+    ]);
+    user = result.data.user;
+  } catch {
+    return supabaseResponse;
+  }
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone();

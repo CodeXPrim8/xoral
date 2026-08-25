@@ -14,3 +14,7 @@ node_modules
 .next/
 .DS_Store
 .vercel
+data/xoral-social/db.json
+data/party/db.json
+tsconfig.tsbuildinfo
+*.zip

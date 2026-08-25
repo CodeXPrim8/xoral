@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bookmark, LayoutGrid, Search, Users } from 'lucide-react';
+import { Bookmark, LayoutGrid, Search, Sparkles, Users } from 'lucide-react';
 
 type NavItem = {
   href: string;
@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { href: '/search', icon: Search, label: null },
   { href: '/library', icon: Bookmark, label: 'My List' },
   { href: '/community/posts', icon: Users, label: 'Community', matchPrefix: '/community' },
+  { href: '/party', icon: Sparkles, label: 'Party', matchPrefix: '/party' },
 ];
 
 function isActive(pathname: string, href: string, matchPrefix?: string) {

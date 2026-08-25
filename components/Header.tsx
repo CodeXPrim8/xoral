@@ -69,6 +69,7 @@ export function Header() {
             {navLink('/ai-stars', 'AI Stars')}
             {navLink('/library', 'My List')}
             {navLink('/community/posts', 'Community', '/community')}
+            {navLink('/party', 'Xoral Party', '/party')}
           </nav>
 
           <div className="flex items-center gap-4 ml-auto">

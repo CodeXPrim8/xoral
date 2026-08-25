@@ -1,0 +1,36 @@
+{
+  "id": "xoral-party",
+  "name": "Xoral Party",
+  "short_name": "XORAL",
+  "description": "30 September 2026 at Ambiance, Ikeja. One party. Two worlds. Get tickets, open the Xoral feed, and count it down.",
+  "start_url": "/party",
+  "scope": "/party",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#050308",
+  "theme_color": "#050308",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["entertainment", "social", "music"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

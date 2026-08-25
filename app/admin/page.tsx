@@ -49,6 +49,7 @@ export default function AdminDashboardPage() {
           { href: '/admin/characters', title: 'AI Stars', desc: 'Manage cast profiles and avatars' },
           { href: '/admin/creators', title: 'Creators', desc: 'Edit featured creators on the home page' },
           { href: '/admin/hero', title: 'Hero Banners', desc: 'Add multiple spotlight slides for the home page carousel' },
+          { href: '/admin/party', title: 'Xoral Party', desc: 'Super admin: sales, tickets, door, vendors and revenue' },
           { href: '/admin/sections', title: 'Home Sections', desc: 'Choose what appears in each carousel row' },
         ].map((card) => (
           <Link

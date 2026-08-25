@@ -23,18 +23,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClientIfConfigured();
     if (!supabase) {
-      setLoading(false);
-      return;
+      const t = window.setTimeout(() => setLoading(false), 0);
+      return () => window.clearTimeout(t);
     }
 
     let active = true;
 
+    function apply(nextUser: User | null, stopLoading = true) {
+      window.setTimeout(() => {
+        if (!active) return;
+        userIdRef.current = nextUser?.id ?? null;
+        setUser(nextUser);
+        if (stopLoading) setLoading(false);
+      }, 0);
+    }
+
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (!active) return;
       const nextUser = session?.user ?? null;
-      userIdRef.current = nextUser?.id ?? null;
-      setUser(nextUser);
-      setLoading(false);
+      apply(nextUser);
       if (nextUser) void migrateLocalStorageToSupabase();
     });
 
@@ -42,27 +49,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-
-      // Token refresh updates cookies only — no need to re-render the whole app.
       if (event === 'TOKEN_REFRESHED') return;
 
       const nextUser = session?.user ?? null;
       const nextUserId = nextUser?.id ?? null;
 
       if (event === 'SIGNED_OUT') {
-        userIdRef.current = null;
-        setUser(null);
-        setLoading(false);
+        apply(null);
         return;
       }
 
       if (nextUserId !== userIdRef.current) {
-        userIdRef.current = nextUserId;
-        setUser(nextUser);
+        apply(nextUser);
         if (nextUser) void migrateLocalStorageToSupabase();
+        return;
       }
 
-      setLoading(false);
+      window.setTimeout(() => {
+        if (active) setLoading(false);
+      }, 0);
     });
 
     function onVisible() {
@@ -71,10 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!active) return;
         const nextUser = session?.user ?? null;
         const nextUserId = nextUser?.id ?? null;
-        if (nextUserId !== userIdRef.current) {
-          userIdRef.current = nextUserId;
-          setUser(nextUser);
-        }
+        if (nextUserId !== userIdRef.current) apply(nextUser, false);
       });
     }
 
